@@ -1,6 +1,6 @@
 # ROS 2 Libcamera Video Stream
 
-This project provides a ROS 2 package for capturing video streams using `libcamera` and publishing them as ROS 2 topics. Additionally, it includes a Flask server to stream the video feed over HTTP.
+This project provides a ROS 2 package for capturing video streams using `libcamera` and publishing them as ROS 2 topics. It was tested using ROS2 Jazzy installed on a Raspberry Pi 5.
 
 ---
 
