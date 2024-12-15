@@ -1,15 +1,15 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# macOS system files
+.DS_Store
+._*
 
 # ROS 2 workspace build files
 build/
 install/
 log/
 
-# Environment files
-*.env
+# Python compiled files
+__pycache__/
+*.py[cod]
 
-# System files
-.DS_Store
+# Temporary or metadata files
+*.swp
