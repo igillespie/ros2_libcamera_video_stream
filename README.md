@@ -14,7 +14,7 @@ This project provides a ROS 2 package for capturing video streams using `libcame
 
 ## Installation
 
-### 1. Clone the Repository
+### Setup
 ```bash
 git clone https://github.com/igillespie/ros2_libcamera_video_stream.git
 cd ros2_libcamera_video_stream
@@ -26,7 +26,7 @@ colcon build
 source install/setup.bash
 
 ros2 run video_stream video_publisher
-
+```
 ## Topics
 
 The node publishes video frames on the following topics:
