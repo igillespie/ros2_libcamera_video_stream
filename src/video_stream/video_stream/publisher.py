@@ -16,12 +16,14 @@ class VideoPublisher(Node):
         self.declare_parameter('width', 1280)
         self.declare_parameter('height', 720)
         self.declare_parameter('fps', 30)
+        self.declare_parameter('path_prefix', '')  # Default is no prefix
 
         # Retrieve parameter values
         self.codec = self.get_parameter('codec').get_parameter_value().string_value
         self.width = self.get_parameter('width').get_parameter_value().integer_value
         self.height = self.get_parameter('height').get_parameter_value().integer_value
         self.fps = self.get_parameter('fps').get_parameter_value().integer_value
+        self.path_prefix = self.get_parameter('path_prefix').get_parameter_value().string_value
 
         self.get_logger().info(f"Starting video stream with codec={self.codec}, width={self.width}, height={self.height}, fps={self.fps}")
 
@@ -42,8 +44,12 @@ class VideoPublisher(Node):
         )
 
         # Create publishers for raw and compressed image messages
-        self.raw_publisher = self.create_publisher(Image, 'video_frames', 10)
-        self.compressed_publisher = self.create_publisher(CompressedImage, 'video_frames/compressed', 10)
+        self.raw_publisher = self.create_publisher(
+            Image, f"{self.path_prefix}/video_frames/raw", 10
+        )
+        self.compressed_publisher = self.create_publisher(
+            CompressedImage, f"{self.path_prefix}/video_frames/compressed", 10
+        )
 
         # Bridge for ROS image messages
         self.bridge = CvBridge()
@@ -53,35 +59,38 @@ class VideoPublisher(Node):
     def process_frames(self):
         try:
             # Read MJPEG data from the pipeline
-            data = self.pipeline.stdout.read(65536)  # Read 64 KB chunks
-            self.buffer += data
+            if self.codec == 'mjpeg':
+                data = self.pipeline.stdout.read(65536)  # Read 64 KB chunks
+                self.buffer += data
 
-            # Process complete JPEG frames
-            while b'\xFF\xD8' in self.buffer and b'\xFF\xD9' in self.buffer:
-                start = self.buffer.find(b'\xFF\xD8')  # Start of Image (SOI)
-                end = self.buffer.find(b'\xFF\xD9') + 2  # End of Image (EOI)
+                # Process complete JPEG frames
+                while b'\xFF\xD8' in self.buffer and b'\xFF\xD9' in self.buffer:
+                    start = self.buffer.find(b'\xFF\xD8')  # Start of Image (SOI)
+                    end = self.buffer.find(b'\xFF\xD9') + 2  # End of Image (EOI)
 
-                # Extract the JPEG frame
-                jpeg_frame = self.buffer[start:end]
-                self.buffer = self.buffer[end:]  # Remove processed frame from the buffer
+                    # Extract the JPEG frame
+                    jpeg_frame = self.buffer[start:end]
+                    self.buffer = self.buffer[end:]  # Remove processed frame from the buffer
 
-                # Decode JPEG to OpenCV format (raw image)
-                frame_array = np.frombuffer(jpeg_frame, dtype=np.uint8)
-                frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+                    # Decode JPEG to OpenCV format (raw image)
+                    frame_array = np.frombuffer(jpeg_frame, dtype=np.uint8)
+                    frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
 
-                # Publish raw image
-                raw_msg = self.bridge.cv2_to_imgmsg(frame, "bgr8")
-                raw_msg.header.stamp = self.get_clock().now().to_msg()
-                self.raw_publisher.publish(raw_msg)
+                    # Publish raw image
+                    raw_msg = self.bridge.cv2_to_imgmsg(frame, "bgr8")
+                    raw_msg.header.stamp = self.get_clock().now().to_msg()
+                    self.raw_publisher.publish(raw_msg)
 
-                # Publish compressed image
-                compressed_msg = CompressedImage()
-                compressed_msg.header.stamp = self.get_clock().now().to_msg()
-                compressed_msg.format = "jpeg"
-                compressed_msg.data = jpeg_frame
-                self.compressed_publisher.publish(compressed_msg)
+                    # Publish compressed image
+                    compressed_msg = CompressedImage()
+                    compressed_msg.header.stamp = self.get_clock().now().to_msg()
+                    compressed_msg.format = "jpeg"
+                    compressed_msg.data = jpeg_frame
+                    self.compressed_publisher.publish(compressed_msg)
 
-                self.get_logger().debug("Published raw and compressed frames")
+                    self.get_logger().debug("Published raw and compressed frames")
+            else: 
+                self.get_logger().error(f"{self.codec} isn't implemented yet...sorry")
 
         except Exception as e:
             self.get_logger().error(f"Error processing frames: {e}")

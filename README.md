@@ -27,6 +27,11 @@ source install/setup.bash
 
 ros2 run video_stream video_publisher
 ```
+Or if you want to pass specific arguments:
+
+```bash
+ros2 run video_stream video_publisher --ros-args -p codec:=mjpeg -p width:=640 -p height:=480 -p fps:=15
+```
 ## Topics
 
 The node publishes video frames on the following topics:
